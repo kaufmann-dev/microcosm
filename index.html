@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Microcosm — evolving artificial market</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2314161c'/%3E%3Crect x='3' y='6' width='2' height='6' fill='%230ca30c'/%3E%3Crect x='7' y='3' width='2' height='7' fill='%23d03b3b'/%3E%3Crect x='11' y='5' width='2' height='8' fill='%239085e9'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --page: #0d0f14;
+        --surface: #14161c;
+        --surface-2: #191c24;
+        --border: rgba(255, 255, 255, 0.08);
+        --ink: #f2f4f8;
+        --ink-2: #c3c6cf;
+        --muted: #8b8f99;
+        --up: #0ca30c;
+        --down: #d03b3b;
+        --accent: #9085e9;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--page);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: 12px;
+        overflow: hidden;
+      }
+      header {
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+      .brand small {
+        display: block;
+        font-size: 9px;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .hstats {
+        display: flex;
+        gap: 18px;
+        font-variant-numeric: tabular-nums;
+      }
+      .hstat b {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .hstat span {
+        font-size: 9px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .controls {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      button {
+        background: var(--surface-2);
+        color: var(--ink-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      button:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        color: var(--ink);
+      }
+      button.primary {
+        min-width: 84px;
+      }
+      input[type="range"] {
+        width: 130px;
+        accent-color: var(--accent);
+      }
+      .speed-label {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        min-width: 70px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-template-rows: 42fr 33fr 25fr;
+        gap: 8px;
+        padding: 8px;
+        height: calc(100vh - 52px);
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .panel > h2 {
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 7px 10px 5px;
+        flex: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .panel > h2 .sub {
+        font-weight: 400;
+        letter-spacing: 0.03em;
+        text-transform: none;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .canvas-wrap {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+      }
+      .canvas-wrap canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #panel-chart { grid-column: 1 / 8; }
+      #panel-depth { grid-column: 8 / 11; }
+      #panel-tape { grid-column: 11 / 13; }
+      #panel-evo { grid-column: 1 / 5; }
+      #panel-genome { grid-column: 5 / 10; }
+      #panel-facts { grid-column: 10 / 13; }
+      #panel-board { grid-column: 1 / 9; }
+      #panel-events { grid-column: 9 / 13; }
+
+      .tip {
+        position: absolute;
+        pointer-events: none;
+        background: #1f232ded;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 9px;
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        font-variant-numeric: tabular-nums;
+        display: none;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      .scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #333845 transparent;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+        font-size: 11px;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        text-align: right;
+        padding: 3px 8px;
+        border-bottom: 1px solid var(--border);
+        z-index: 2;
+      }
+      th:first-child,
+      th:nth-child(2) {
+        text-align: left;
+      }
+      td {
+        padding: 2.5px 8px;
+        text-align: right;
+        color: var(--ink-2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        white-space: nowrap;
+      }
+      td:first-child,
+      td:nth-child(2) {
+        text-align: left;
+      }
+      tbody tr {
+        cursor: pointer;
+      }
+      tbody tr:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      tbody tr.sel {
+        background: rgba(144, 133, 233, 0.12);
+      }
+      .chip {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        margin-right: 6px;
+        vertical-align: baseline;
+      }
+      .tape-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 2px 10px;
+        font-variant-numeric: tabular-nums;
+        font-size: 11px;
+        color: var(--ink-2);
+      }
+      .event-row {
+        display: flex;
+        gap: 8px;
+        padding: 3px 10px;
+        font-size: 11px;
+        color: var(--ink-2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        font-variant-numeric: tabular-nums;
+      }
+      .event-row .t {
+        color: var(--muted);
+        flex: none;
+        width: 64px;
+      }
+      #genome-head {
+        padding: 4px 10px 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink-2);
+        flex: none;
+        min-height: 40px;
+        align-content: center;
+      }
+      #genome-head .g b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      #genome-head .g span {
+        color: var(--muted);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        display: block;
+      }
+      #genome-formula {
+        flex: none;
+        padding: 4px 10px 8px;
+        font-family: ui-monospace, "Cascadia Mono", monospace;
+        font-size: 10px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .hint {
+        color: var(--muted);
+        padding: 14px 12px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        MICROCOSM
+        <small>evolving artificial market</small>
+      </div>
+      <div class="hstats">
+        <div class="hstat"><b id="h-price">—</b><span>last</span></div>
+        <div class="hstat"><b id="h-fund">—</b><span>fundamental</span></div>
+        <div class="hstat"><b id="h-prem">—</b><span>premium</span></div>
+        <div class="hstat"><b id="h-tick">0</b><span>tick</span></div>
+        <div class="hstat"><b id="h-gen">0</b><span>generation</span></div>
+        <div class="hstat"><b id="h-tps">0</b><span>ticks / s</span></div>
+      </div>
+      <div class="controls">
+        <button id="btn-pause" class="primary">Pause</button>
+        <input id="speed" type="range" min="0" max="100" value="55" />
+        <span class="speed-label" id="speed-label"></span>
+        <button id="btn-crash" title="Inject a negative fundamental shock">Shock ▼</button>
+        <button id="btn-boom" title="Inject a positive fundamental shock">Shock ▲</button>
+        <button id="btn-reset" title="New world, new random seed">Reset</button>
+      </div>
+    </header>
+    <main>
+      <section id="panel-chart" class="panel">
+        <h2>Price &amp; fundamental <span class="sub" id="chart-sub"></span></h2>
+        <div class="canvas-wrap">
+          <canvas id="cv-chart"></canvas>
+          <div class="tip" id="chart-tip"></div>
+        </div>
+      </section>
+      <section id="panel-depth" class="panel">
+        <h2>Order book depth <span class="sub" id="depth-sub"></span></h2>
+        <div class="canvas-wrap">
+          <canvas id="cv-depth"></canvas>
+          <div class="tip" id="depth-tip"></div>
+        </div>
+      </section>
+      <section id="panel-tape" class="panel">
+        <h2>Tape</h2>
+        <div class="scroll" id="tape"></div>
+      </section>
+      <section id="panel-evo" class="panel">
+        <h2>Evolution <span class="sub" id="evo-sub"></span></h2>
+        <div class="canvas-wrap"><canvas id="cv-evo"></canvas></div>
+      </section>
+      <section id="panel-genome" class="panel">
+        <h2>Genome inspector <span class="sub" id="genome-sub">click an agent below</span></h2>
+        <div id="genome-head"></div>
+        <div class="canvas-wrap"><canvas id="cv-genome"></canvas></div>
+        <div id="genome-formula"></div>
+      </section>
+      <section id="panel-facts" class="panel">
+        <h2>Stylized facts <span class="sub" id="facts-sub"></span></h2>
+        <div class="canvas-wrap"><canvas id="cv-facts"></canvas></div>
+      </section>
+      <section id="panel-board" class="panel">
+        <h2>Agents — click to inspect <span class="sub" id="board-sub"></span></h2>
+        <div class="scroll" id="board"></div>
+      </section>
+      <section id="panel-events" class="panel">
+        <h2>Events</h2>
+        <div class="scroll" id="events"></div>
+      </section>
+    </main>
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>
